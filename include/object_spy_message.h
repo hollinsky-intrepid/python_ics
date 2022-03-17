@@ -184,10 +184,14 @@ static PyObject* spy_message_object_getattr(PyObject *o, PyObject *attr_name)
     else if (PyUnicode_CompareWithASCIIString(attr_name, "ExtraDataPtr") == 0) {
         Py_DECREF(attr_name);
         spy_message_j1850_object* obj = (spy_message_j1850_object*)o;
-        unsigned char *ExtraDataPtr = (unsigned char*)obj->msg.ExtraDataPtr;
-        if ((obj->msg.ExtraDataPtrEnabled && obj->msg.NumberBytesData && obj->msg.ExtraDataPtr) ||
-			(obj->msg.Protocol == SPY_PROTOCOL_ETHERNET && obj->msg.NumberBytesData && obj->msg.ExtraDataPtr)) {
-            int size = obj->msg.NumberBytesData + (obj->msg.NumberBytesHeader << 8);
+        unsigned char* ExtraDataPtr = (unsigned char*)obj->msg.ExtraDataPtr;
+        if ((obj->msg.ExtraDataPtrEnabled || obj->msg.Protocol == SPY_PROTOCOL_ETHERNET) && obj->msg.NumberBytesData && ExtraDataPtr) {
+            int size = obj->msg.NumberBytesData;
+
+            // For Ethernet (and only Ethernet), NumberBytesHeader is the upper 8 bits of the length
+            if (obj->msg.Protocol == SPY_PROTOCOL_ETHERNET)
+                size += (obj->msg.NumberBytesHeader << 8);
+
             PyObject *tuple = PyTuple_New(size);
             for (int i=0; i < size; ++i) {
                 PyTuple_SET_ITEM(tuple, i, PyLong_FromLong(ExtraDataPtr[i]));
